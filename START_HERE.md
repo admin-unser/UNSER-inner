@@ -1,12 +1,43 @@
 # START_HERE
 
-This file was created to make the current agent branch easy to verify on GitHub.
+このファイルは、GitHub 上で「いまこのリポジトリに変更が入っている」ことを確認しやすくするために作成しています。
 
-## What this means
+## まず見る場所
 
-- The agent can create files in this repository.
-- The file is committed and pushed from the current working branch.
+- `README.md`
+- `docs/`
+- `data/`
+- `reports/`
+- `scripts/`
+- `shared/`
 
-## Current purpose
+## このリポジトリの使い方
 
-Use this file as a simple visibility check before adding more documents, data, and automation.
+### 1. 資料やデータを置く
+
+例:
+- `data/office/`
+- `data/posting/`
+- `shared/`
+
+### 2. やりたいことを伝える
+
+例:
+- 「このフォルダを読んで整理して」
+- 「このシートを集計して」
+- 「レポートを作って」
+- 「自動化して」
+
+### 3. 私が実装する
+
+私は必要に応じて以下を進めます。
+
+- 調査
+- ドキュメント整理
+- スクリプト作成
+- レポート生成
+- commit / push
+
+## 補足
+
+このリポジトリは、UNSER の社内運用と自動化のベースとして整備していきます。
