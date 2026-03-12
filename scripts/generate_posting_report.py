@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import http.client
 import io
 import re
 import urllib.request
@@ -31,7 +32,16 @@ def parse_args() -> argparse.Namespace:
 
 def fetch_workbook(sheet_id: str) -> tuple[zipfile.ZipFile, list[str], ET.Element, dict[str, str]]:
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
-    data = urllib.request.urlopen(url, timeout=60).read()
+    last_error: Exception | None = None
+    data = None
+    for _ in range(3):
+        try:
+            data = urllib.request.urlopen(url, timeout=60).read()
+            break
+        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead) as exc:
+            last_error = exc
+    if data is None:
+        raise RuntimeError(f"Failed to fetch workbook: {sheet_id}") from last_error
     zf = zipfile.ZipFile(io.BytesIO(data))
 
     shared = []
