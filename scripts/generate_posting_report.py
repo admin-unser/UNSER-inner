@@ -17,6 +17,8 @@ from collections import Counter
 
 
 SHEET_ID = "1zUkpKOHO4ro35nvcCe-tfI-rNHWf3dJhPIVhPNuEla4"
+# 配布完了実績の公式ソース（配布完了確認シート）
+DISTRIBUTION_COMPLETE_SHEET_ID = "1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y"
 NS = {
     "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
@@ -26,6 +28,11 @@ NS = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate posting report markdown.")
     parser.add_argument("--sheet-id", default=SHEET_ID, help="Google Sheets ID")
+    parser.add_argument(
+        "--distribution-complete-sheet-id",
+        default=DISTRIBUTION_COMPLETE_SHEET_ID,
+        help="Sheet ID for 配布完了確認 (配布完了実績の公式ソース)",
+    )
     parser.add_argument("--output", required=True, help="Output markdown path")
     return parser.parse_args()
 
@@ -372,6 +379,64 @@ def summarize_current_run(items: list[dict[str, str]]) -> dict:
     }
 
 
+def summarize_distribution_complete(items: list[dict[str, str]]) -> dict:
+    """配布完了確認シートの配布完了タブから、メンバー別実績を集計。"""
+    by_member: dict[str, dict] = {}
+    total_properties = 0
+    total_units = 0
+    total_delivered = 0
+
+    for item in items:
+        if not item.get("ID", "").strip():
+            continue
+        member = item.get("担当者", "").strip() or "(未設定)"
+        total_units_row = int(to_number(item.get("総戸数", "")))
+        delivered = int(to_number(item.get("実配付枚数", "")))
+
+        total_properties += 1
+        total_units += total_units_row
+        total_delivered += delivered
+
+        m = by_member.setdefault(
+            member,
+            {
+                "properties": 0,
+                "total_units": 0,
+                "delivered_units": 0,
+            },
+        )
+        m["properties"] += 1
+        m["total_units"] += total_units_row
+        m["delivered_units"] += delivered
+
+    ranked = sorted(
+        by_member.items(),
+        key=lambda x: (x[1]["delivered_units"], x[1]["total_units"]),
+        reverse=True,
+    )
+    return {
+        "members": ranked,
+        "total_properties": total_properties,
+        "total_units": total_units,
+        "total_delivered": total_delivered,
+    }
+
+
+def distribution_complete_member_rows(
+    members: list[tuple[str, dict]], limit: int = 10
+) -> list[str]:
+    """配布完了確認シートベースのメンバー行を生成。"""
+    rows = []
+    for name, metrics in members[:limit]:
+        label = "member-" + hashlib.sha1(name.encode("utf-8")).hexdigest()[:6]
+        fill_rate = ratio(metrics["delivered_units"], metrics["total_units"]) * 100
+        rows.append(
+            f"| {label} | {metrics['properties']:,} | {metrics['total_units']:,} | "
+            f"{metrics['delivered_units']:,} | {fill_rate:.1f}% |"
+        )
+    return rows
+
+
 def top_prefecture_rows(counter: Counter[str], unit_counter: Counter[str], limit: int = 5) -> list[str]:
     rows = []
     for pref, count in counter.most_common(limit):
@@ -464,6 +529,11 @@ def build_markdown(summary: dict) -> str:
     lines.append(
         f"- フィードバック起点の自動化テーマは **{feedback['total']}件**、うち **{feedback['done']}件** が完了、**{feedback['total'] - feedback['done']}件** が未完了。"
     )
+    dist_complete = summary.get("distribution_complete")
+    if dist_complete:
+        lines.append(
+            f"- **配布完了実績**（配布完了確認シート）: **{dist_complete['total_properties']:,}件** / **{dist_complete['total_delivered']:,}枚** 実配付。"
+        )
     lines.append("")
     lines.append("## Reading notes")
     lines.append("")
@@ -472,7 +542,8 @@ def build_markdown(summary: dict) -> str:
         f"- `物件リスト` のうち `配布予定日` が埋まっているのは **{assigned['schedule_filled']:,}件 ({ratio(assigned['schedule_filled'], assigned['properties']) * 100:.1f}%)**、`開始日時` は **{assigned['started_filled']:,}件 ({ratio(assigned['started_filled'], assigned['properties']) * 100:.1f}%)**。"
     )
     lines.append("- `物件リスト` と `担当者不在` は別キューとして扱い、単純合算しています。")
-    lines.append("- メンバー別の実績は `262 稼働分` タブをベースにしているため、直近稼働分の把握に向いています。")
+    lines.append("- **配布完了実績**は配布完了確認シートの `配布完了` タブを参照しています。")
+    lines.append("- `262 稼働分` は現状のステータス・レビューシグナル把握に使用しています。")
     lines.append("")
     lines.append("## Queue health")
     lines.append("")
@@ -534,9 +605,30 @@ def build_markdown(summary: dict) -> str:
     lines.append("| --- | ---: | ---: | ---: | ---: |")
     lines.extend(top_summary_pref_rows(summary["prefecture_summary"]))
     lines.append("")
-    lines.append("## Member performance (`262 稼働分` ベース)")
+    lines.append("## 配布完了実績（配布完了確認シート）")
     lines.append("")
+    lines.append(
+        "- 配布完了実績は [配布完了確認シート](https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y) の `配布完了` タブを参照しています。"
+    )
     lines.append("- public リポジトリ向けに、担当者識別子はマスクしています。")
+    lines.append("")
+    dist_complete = summary.get("distribution_complete")
+    if dist_complete:
+        lines.append(
+            f"- 合計: **{dist_complete['total_properties']:,}件** / **{dist_complete['total_units']:,}戸** / 実配付 **{dist_complete['total_delivered']:,}枚**"
+        )
+        fill = ratio(dist_complete["total_delivered"], dist_complete["total_units"]) * 100
+        lines.append(f"- 実配付率: **{fill:.1f}%**")
+        lines.append("")
+        lines.append("| 担当者 | 配布完了件数 | 総戸数 | 実配付枚数 | 実配付率 |")
+        lines.append("| --- | ---: | ---: | ---: | ---: |")
+        lines.extend(distribution_complete_member_rows(dist_complete["members"]))
+    else:
+        lines.append("- 配布完了確認シートの取得に失敗したため、データを表示できません。")
+    lines.append("")
+    lines.append("## 262 稼働分の状況（ステータス・レビューシグナル）")
+    lines.append("")
+    lines.append("- 以下は posting シート `262 稼働分` タブの現状です。")
     lines.append("")
     lines.append("| 担当者 | 物件数 | 総戸数 | 実配付枚数 | 実配付率 | 配布完了件数 | レビュー候補 |")
     lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
@@ -602,7 +694,7 @@ def main() -> int:
 
     assigned_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "物件リスト")
     unassigned_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "担当者不在")
-    member_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "メンバーマスタ")
+    member_rows_data = sheet_rows(zf, shared_strings, workbook, rel_map, "メンバーマスタ")
     monthly_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "月次報告")
     attendance_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "勤怠ログ")
     feedback_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "フィードバック")
@@ -612,12 +704,28 @@ def main() -> int:
     summary_data = {
         "assigned": summarize_queue(records(assigned_rows)),
         "unassigned": summarize_queue(records(unassigned_rows)),
-        "members": summarize_members(records(member_rows)),
+        "members": summarize_members(records(member_rows_data)),
         "monthly": summarize_monthly(records(monthly_rows)),
         "attendance": summarize_attendance(records(attendance_rows)),
         "feedback": summarize_feedback(records(feedback_rows)),
         "current_run": summarize_current_run(records(current_run_rows)),
     }
+
+    # 配布完了実績: 配布完了確認シートの 配布完了 タブを参照
+    distribution_complete = None
+    try:
+        zf_dc, shared_dc, workbook_dc, rel_map_dc = fetch_workbook(
+            args.distribution_complete_sheet_id
+        )
+        dist_complete_rows = sheet_rows(
+            zf_dc, shared_dc, workbook_dc, rel_map_dc, "配布完了"
+        )
+        distribution_complete = summarize_distribution_complete(
+            records(dist_complete_rows)
+        )
+    except (RuntimeError, KeyError):
+        pass
+    summary_data["distribution_complete"] = distribution_complete
 
     aggregate = summarize_summary_sheet(records(summary_rows, header_index=1))
     summary_data["aggregate_total"] = aggregate["total"]

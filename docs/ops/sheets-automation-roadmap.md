@@ -59,6 +59,7 @@ posting シートは、配布対象物件、担当者、勤怠、月次報告、
 
 - **月次・日次・メンバー別**: `scripts/run_posting_reports.py --month YYYY-MM`
 - 出力先: `reports/posting/YYYY-MM/`（monthly-summary, daily/, members/, monthly-aggregate）
+- **配布完了実績**: [配布完了確認シート](https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y) の `配布完了` タブを参照
 - **担当者不在 × ジモティー**: `scripts/export_unassigned_for_jimoty.py` で都道府県別エクスポート
   - 詳細: `docs/ops/jimoty-unassigned-integration.md`
 
