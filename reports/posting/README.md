@@ -26,9 +26,13 @@ python3 run_posting_reports.py --month 2026-03
 - `--skip-daily` … 日次レポートをスキップ
 - `--skip-members` … メンバー別レポートをスキップ
 - `--skip-aggregate` … 月次集計をスキップ
+- `--unmask` … 担当者名を実名で表示（社内用。public には commit しないこと）
 
 メンバー名を実名で出力する場合（社内用）:
 ```bash
+python3 run_posting_reports.py --month 2026-03 --unmask
+# または個別に:
+python3 generate_posting_report.py --output ../reports/posting/2026-03/monthly-summary.md --unmask
 python3 generate_posting_member_reports.py --month 2026-03 --output-dir ../reports/posting/2026-03/members --unmask
 ```
 

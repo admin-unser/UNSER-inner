@@ -52,6 +52,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip monthly aggregate (備考).",
     )
+    parser.add_argument(
+        "--unmask",
+        action="store_true",
+        help="担当者名を実名で表示（社内用）",
+    )
     return parser.parse_args()
 
 
@@ -78,14 +83,15 @@ def main() -> int:
 
     # 1. 月次サマリ（週次相当の運用在庫スナップショット）
     summary_path = os.path.join(month_dir, "monthly-summary.md")
-    if not run_cmd(
-        [
-            sys.executable,
-            "generate_posting_report.py",
-            "--sheet-id", args.sheet_id,
-            "--output", summary_path,
-        ]
-    ):
+    summary_cmd = [
+        sys.executable,
+        "generate_posting_report.py",
+        "--sheet-id", args.sheet_id,
+        "--output", summary_path,
+    ]
+    if args.unmask:
+        summary_cmd.append("--unmask")
+    if not run_cmd(summary_cmd):
         print("Failed to generate monthly summary.", file=sys.stderr)
         return 1
     print(f"Generated: {summary_path}")
@@ -108,15 +114,16 @@ def main() -> int:
 
     # 3. メンバー別月次レポート
     if not args.skip_members:
-        members_ok = run_cmd(
-            [
-                sys.executable,
-                "generate_posting_member_reports.py",
-                "--month", args.month,
-                "--sheet-id", args.sheet_id,
-                "--output-dir", members_dir,
-            ]
-        )
+        members_cmd = [
+            sys.executable,
+            "generate_posting_member_reports.py",
+            "--month", args.month,
+            "--sheet-id", args.sheet_id,
+            "--output-dir", members_dir,
+        ]
+        if args.unmask:
+            members_cmd.append("--unmask")
+        members_ok = run_cmd(members_cmd)
         if not members_ok:
             print("Warning: member report generation had issues.", file=sys.stderr)
         else:

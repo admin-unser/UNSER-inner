@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         default=DISTRIBUTION_COMPLETE_SHEET_ID,
         help="Sheet ID for 配布完了確認 (配布完了実績の公式ソース)",
     )
+    parser.add_argument(
+        "--unmask",
+        action="store_true",
+        help="担当者名を実名で表示（社内用。public リポジトリには commit しないこと）",
+    )
     parser.add_argument("--output", required=True, help="Output markdown path")
     return parser.parse_args()
 
@@ -281,6 +286,17 @@ def summarize_attendance(items: list[dict[str, str]]) -> dict:
     return {"logs": logs, "unique_workers": len(workers), "kinds": kinds}
 
 
+def build_member_name_map(member_records: list[dict[str, str]]) -> dict[str, str]:
+    """メールアドレス -> 氏名 のマップを構築。"""
+    name_map: dict[str, str] = {}
+    for item in member_records:
+        mail = item.get("メールアドレス", "").strip()
+        name = item.get("氏名", "").strip()
+        if mail and name:
+            name_map[mail] = name
+    return name_map
+
+
 def summarize_feedback(items: list[dict[str, str]]) -> dict:
     total = 0
     done = 0
@@ -423,15 +439,18 @@ def summarize_distribution_complete(items: list[dict[str, str]]) -> dict:
 
 
 def distribution_complete_member_rows(
-    members: list[tuple[str, dict]], limit: int = 10
+    members: list[tuple[str, dict]],
+    limit: int = 10,
+    unmask: bool = False,
+    name_map: dict[str, str] | None = None,
 ) -> list[str]:
     """配布完了確認シートベースのメンバー行を生成。"""
     rows = []
     for name, metrics in members[:limit]:
-        label = "member-" + hashlib.sha1(name.encode("utf-8")).hexdigest()[:6]
+        display = _member_display(name, unmask, name_map)
         fill_rate = ratio(metrics["delivered_units"], metrics["total_units"]) * 100
         rows.append(
-            f"| {label} | {metrics['properties']:,} | {metrics['total_units']:,} | "
+            f"| {display} | {metrics['properties']:,} | {metrics['total_units']:,} | "
             f"{metrics['delivered_units']:,} | {fill_rate:.1f}% |"
         )
     return rows
@@ -471,13 +490,26 @@ def top_summary_pref_rows(prefectures: list[dict], limit: int = 5) -> list[str]:
     return rows
 
 
-def member_rows(members: list[tuple[str, dict]], limit: int = 10) -> list[str]:
+def _member_display(key: str, unmask: bool, name_map: dict[str, str] | None) -> str:
+    if not unmask:
+        return "member-" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:6]
+    if name_map and key in name_map:
+        return name_map[key]
+    return key
+
+
+def member_rows(
+    members: list[tuple[str, dict]],
+    limit: int = 10,
+    unmask: bool = False,
+    name_map: dict[str, str] | None = None,
+) -> list[str]:
     rows = []
     for name, metrics in members[:limit]:
         fill_rate = ratio(metrics["delivered_units"], metrics["total_units"]) * 100
-        member_label = "member-" + hashlib.sha1(name.encode("utf-8")).hexdigest()[:6]
+        display = _member_display(name, unmask, name_map)
         rows.append(
-            f"| {member_label} | {metrics['properties']:,} | {metrics['total_units']:,} | "
+            f"| {display} | {metrics['properties']:,} | {metrics['total_units']:,} | "
             f"{metrics['delivered_units']:,} | {fill_rate:.1f}% | {metrics['completed_properties']:,} | {metrics['review_flags']:,} |"
         )
     return rows
@@ -610,7 +642,10 @@ def build_markdown(summary: dict) -> str:
     lines.append(
         "- 配布完了実績は [配布完了確認シート](https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y) の `配布完了` タブを参照しています。"
     )
-    lines.append("- public リポジトリ向けに、担当者識別子はマスクしています。")
+    unmask = summary.get("unmask", False)
+    name_map = summary.get("name_map")
+    if not unmask:
+        lines.append("- public リポジトリ向けに、担当者識別子はマスクしています。")
     lines.append("")
     dist_complete = summary.get("distribution_complete")
     if dist_complete:
@@ -622,7 +657,11 @@ def build_markdown(summary: dict) -> str:
         lines.append("")
         lines.append("| 担当者 | 配布完了件数 | 総戸数 | 実配付枚数 | 実配付率 |")
         lines.append("| --- | ---: | ---: | ---: | ---: |")
-        lines.extend(distribution_complete_member_rows(dist_complete["members"]))
+        lines.extend(
+            distribution_complete_member_rows(
+                dist_complete["members"], unmask=unmask, name_map=name_map
+            )
+        )
     else:
         lines.append("- 配布完了確認シートの取得に失敗したため、データを表示できません。")
     lines.append("")
@@ -632,7 +671,11 @@ def build_markdown(summary: dict) -> str:
     lines.append("")
     lines.append("| 担当者 | 物件数 | 総戸数 | 実配付枚数 | 実配付率 | 配布完了件数 | レビュー候補 |")
     lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
-    lines.extend(member_rows(current_run["members"]))
+    lines.extend(
+        member_rows(
+            current_run["members"], unmask=unmask, name_map=name_map
+        )
+    )
     lines.append("")
     lines.append("### Current run status")
     lines.append("")
@@ -730,6 +773,10 @@ def main() -> int:
     aggregate = summarize_summary_sheet(records(summary_rows, header_index=1))
     summary_data["aggregate_total"] = aggregate["total"]
     summary_data["prefecture_summary"] = aggregate["prefectures"]
+    summary_data["unmask"] = args.unmask
+    summary_data["name_map"] = (
+        build_member_name_map(records(member_rows_data)) if args.unmask else None
+    )
 
     markdown = build_markdown(summary_data)
     with open(args.output, "w", encoding="utf-8") as handle:
