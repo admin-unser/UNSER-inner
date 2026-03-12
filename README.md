@@ -1,39 +1,71 @@
 # UNSER-inner
 
-Operational workspace for UNSER.
+UNSER の社内運用・資料整理・自動化実装のためのワークスペースです。
 
-## Directory layout
+最初に見るファイル:
+- `START_HERE.md`
+
+## このリポジトリでできること
+
+- 社内資料の整理
+- Google シートや CSV の取り込み
+- 定例レポートの生成
+- 業務フローの文書化
+- 自動化スクリプトの実装
+
+## ディレクトリ構成
+
+- `docs/`
+  - 会社情報、運用資料、会議メモ
+- `data/`
+  - 元データ、CSV、エクスポートファイル
+- `reports/`
+  - 生成したレポート
+- `scripts/`
+  - 自動化スクリプト
+- `shared/`
+  - 一時共有ファイル
+
+## よく使う置き場所
 
 - `docs/company/`
-  - Company profile, org, strategy, KPI definitions
+  - 会社概要、組織、戦略、KPI
 - `docs/ops/`
-  - Runbooks, SOPs, workflow notes
+  - 業務手順、SOP、運用メモ
 - `docs/meetings/`
-  - Weekly and monthly meeting notes and agendas
+  - 週次・月次の会議メモ
 - `data/office/`
-  - Office-related raw exports and source files
+  - office 系の元データ
 - `data/posting/`
-  - Posting-related raw exports and source files
+  - ポス関連の元データ
 - `data/sales/`
-  - Sales data and pipeline exports
+  - 営業データ
 - `data/finance/`
-  - Finance-related exports and supporting files
-- `reports/`
-  - Generated reports and summaries
-- `scripts/`
-  - Automation scripts and utilities
-- `shared/`
-  - Ad hoc files shared for agent review
+  - 財務・請求関連データ
 
-## How to share files with the agent
+## あなたがやること
 
-1. Put files under one of the directories above.
-2. Tell the agent the path you want reviewed.
-3. For Google Sheets, share the URL and specify which sheet/tab matters.
+基本的には次のどちらかだけで大丈夫です。
 
-## Notes
+1. ファイルを置く
+2. やりたいことを伝える
 
-- Keep raw source data under `data/`.
-- Keep human-readable references under `docs/`.
-- Keep generated outputs under `reports/`.
-- Keep repeatable automation under `scripts/`.
+例:
+- 「`data/office/` を見て整理して」
+- 「ポスシートを集計して」
+- 「週次レポートを作って」
+
+## 私がやること
+
+- データや資料の確認
+- 構造整理
+- スクリプト実装
+- レポート生成
+- Git への commit / push
+
+## 補足
+
+- 元データは `data/`
+- 人が読む資料は `docs/`
+- 成果物は `reports/`
+- 繰り返し使う処理は `scripts/`
