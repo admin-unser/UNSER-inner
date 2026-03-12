@@ -1,0 +1,212 @@
+[
+  {
+    "prefecture": "東京都",
+    "properties": 21630,
+    "units": 1150902
+  },
+  {
+    "prefecture": "北海道",
+    "properties": 7970,
+    "units": 411422
+  },
+  {
+    "prefecture": "埼玉県",
+    "properties": 7381,
+    "units": 349932
+  },
+  {
+    "prefecture": "福岡県",
+    "properties": 5979,
+    "units": 286481
+  },
+  {
+    "prefecture": "大阪府",
+    "properties": 4204,
+    "units": 213101
+  },
+  {
+    "prefecture": "神奈川県",
+    "properties": 4398,
+    "units": 202815
+  },
+  {
+    "prefecture": "宮城県",
+    "properties": 3373,
+    "units": 170387
+  },
+  {
+    "prefecture": "京都府",
+    "properties": 2769,
+    "units": 131830
+  },
+  {
+    "prefecture": "千葉県",
+    "properties": 2786,
+    "units": 129008
+  },
+  {
+    "prefecture": "愛知県",
+    "properties": 2567,
+    "units": 113074
+  },
+  {
+    "prefecture": "兵庫県",
+    "properties": 1911,
+    "units": 97151
+  },
+  {
+    "prefecture": "静岡県",
+    "properties": 1215,
+    "units": 46630
+  },
+  {
+    "prefecture": "奈良県",
+    "properties": 784,
+    "units": 35211
+  },
+  {
+    "prefecture": "長野県",
+    "properties": 672,
+    "units": 29545
+  },
+  {
+    "prefecture": "茨城県",
+    "properties": 526,
+    "units": 27493
+  },
+  {
+    "prefecture": "広島県",
+    "properties": 611,
+    "units": 26545
+  },
+  {
+    "prefecture": "新潟県",
+    "properties": 489,
+    "units": 26408
+  },
+  {
+    "prefecture": "山梨県",
+    "properties": 408,
+    "units": 25704
+  },
+  {
+    "prefecture": "岩手県",
+    "properties": 485,
+    "units": 24616
+  },
+  {
+    "prefecture": "滋賀県",
+    "properties": 396,
+    "units": 22367
+  },
+  {
+    "prefecture": "岡山県",
+    "properties": 516,
+    "units": 21234
+  },
+  {
+    "prefecture": "群馬県",
+    "properties": 286,
+    "units": 16542
+  },
+  {
+    "prefecture": "山形県",
+    "properties": 320,
+    "units": 14623
+  },
+  {
+    "prefecture": "徳島県",
+    "properties": 389,
+    "units": 12839
+  },
+  {
+    "prefecture": "高知県",
+    "properties": 268,
+    "units": 11471
+  },
+  {
+    "prefecture": "岐阜県",
+    "properties": 324,
+    "units": 11332
+  },
+  {
+    "prefecture": "青森県",
+    "properties": 250,
+    "units": 10890
+  },
+  {
+    "prefecture": "佐賀県",
+    "properties": 294,
+    "units": 10557
+  },
+  {
+    "prefecture": "山口県",
+    "properties": 278,
+    "units": 9203
+  },
+  {
+    "prefecture": "石川県",
+    "properties": 221,
+    "units": 8662
+  },
+  {
+    "prefecture": "秋田県",
+    "properties": 180,
+    "units": 8268
+  },
+  {
+    "prefecture": "島根県",
+    "properties": 125,
+    "units": 4365
+  },
+  {
+    "prefecture": "鹿児島県",
+    "properties": 131,
+    "units": 4142
+  },
+  {
+    "prefecture": "香川県",
+    "properties": 93,
+    "units": 3849
+  },
+  {
+    "prefecture": "長崎県",
+    "properties": 67,
+    "units": 2676
+  },
+  {
+    "prefecture": "鳥取県",
+    "properties": 65,
+    "units": 2454
+  },
+  {
+    "prefecture": "愛媛県",
+    "properties": 59,
+    "units": 2225
+  },
+  {
+    "prefecture": "福島県",
+    "properties": 27,
+    "units": 1580
+  },
+  {
+    "prefecture": "福井県",
+    "properties": 36,
+    "units": 1302
+  },
+  {
+    "prefecture": "熊本県",
+    "properties": 29,
+    "units": 1111
+  },
+  {
+    "prefecture": "富山県",
+    "properties": 20,
+    "units": 1067
+  },
+  {
+    "prefecture": "宮崎県",
+    "properties": 18,
+    "units": 724
+  }
+]

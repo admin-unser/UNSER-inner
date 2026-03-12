@@ -55,6 +55,13 @@ posting シートは、配布対象物件、担当者、勤怠、月次報告、
 2. 都道府県別・担当者別の進捗レポート
 3. 月次報告と勤怠ログの確認レポート
 
+### レポート運用（月次管理）
+
+- **月次・日次・メンバー別**: `scripts/run_posting_reports.py --month YYYY-MM`
+- 出力先: `reports/posting/YYYY-MM/`（monthly-summary, daily/, members/, monthly-aggregate）
+- **担当者不在 × ジモティー**: `scripts/export_unassigned_for_jimoty.py` で都道府県別エクスポート
+  - 詳細: `docs/ops/jimoty-unassigned-integration.md`
+
 ## おすすめの実装順
 
 1. `scripts/sheet_inventory.py` で構造把握を固定化
