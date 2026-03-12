@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import io
 import re
 import urllib.request
@@ -280,6 +281,87 @@ def summarize_feedback(items: list[dict[str, str]]) -> dict:
     return {"total": total, "done": done, "pending_topics": pending_topics[:5]}
 
 
+def summarize_current_run(items: list[dict[str, str]]) -> dict:
+    by_member: dict[str, dict] = {}
+    status_counter: Counter[str] = Counter()
+    ai_counter: Counter[str] = Counter()
+    review_counter: Counter[str] = Counter()
+
+    for item in items:
+        if not item.get("ID", "").strip():
+            continue
+
+        member = item.get("担当者", "").strip() or "(未設定)"
+        status = item.get("ステータス", "").strip()
+        ai_result = item.get("AI判定", "").strip()
+        total_units = int(to_number(item.get("総戸数", "")))
+        delivered_units = int(to_number(item.get("実配付枚数", "")))
+        ng_count = int(to_number(item.get("NG枚数", "")))
+        has_photo = bool(item.get("配布写真", "").strip())
+        has_ocr = bool(item.get("OCR結果", "").strip())
+
+        status_counter[status] += 1
+        ai_counter[ai_result or "(blank)"] += 1
+
+        metrics = by_member.setdefault(
+            member,
+            {
+                "properties": 0,
+                "total_units": 0,
+                "delivered_units": 0,
+                "completed_properties": 0,
+                "review_flags": 0,
+                "status": Counter(),
+            },
+        )
+
+        metrics["properties"] += 1
+        metrics["total_units"] += total_units
+        metrics["delivered_units"] += delivered_units
+        metrics["status"][status] += 1
+
+        flagged = False
+        if status == "配布完了":
+            metrics["completed_properties"] += 1
+            if not has_photo:
+                review_counter["完了だが写真なし"] += 1
+                flagged = True
+            if ai_result != "OK":
+                review_counter["完了だがAI判定OK以外"] += 1
+                flagged = True
+            if not has_ocr:
+                review_counter["完了だがOCR結果なし"] += 1
+                flagged = True
+            if delivered_units < total_units:
+                review_counter["総戸数より実配付枚数が少ない完了"] += 1
+                flagged = True
+        if ng_count > 0:
+            review_counter["NG枚数あり"] += 1
+            flagged = True
+        if status == "差し戻し":
+            review_counter["差し戻し"] += 1
+            flagged = True
+        if status == "保留":
+            review_counter["保留"] += 1
+            flagged = True
+
+        if flagged:
+            metrics["review_flags"] += 1
+
+    ranked_members = sorted(
+        by_member.items(),
+        key=lambda item: (item[1]["delivered_units"], item[1]["total_units"]),
+        reverse=True,
+    )
+
+    return {
+        "members": ranked_members,
+        "status": status_counter,
+        "ai": ai_counter,
+        "review": review_counter,
+    }
+
+
 def top_prefecture_rows(counter: Counter[str], unit_counter: Counter[str], limit: int = 5) -> list[str]:
     rows = []
     for pref, count in counter.most_common(limit):
@@ -314,6 +396,25 @@ def top_summary_pref_rows(prefectures: list[dict], limit: int = 5) -> list[str]:
     return rows
 
 
+def member_rows(members: list[tuple[str, dict]], limit: int = 10) -> list[str]:
+    rows = []
+    for name, metrics in members[:limit]:
+        fill_rate = ratio(metrics["delivered_units"], metrics["total_units"]) * 100
+        member_label = "member-" + hashlib.sha1(name.encode("utf-8")).hexdigest()[:6]
+        rows.append(
+            f"| {member_label} | {metrics['properties']:,} | {metrics['total_units']:,} | "
+            f"{metrics['delivered_units']:,} | {fill_rate:.1f}% | {metrics['completed_properties']:,} | {metrics['review_flags']:,} |"
+        )
+    return rows
+
+
+def simple_counter_rows(counter: Counter[str], limit: int = 10) -> list[str]:
+    rows = []
+    for key, value in counter.most_common(limit):
+        rows.append(f"| {key} | {value:,} |")
+    return rows
+
+
 def build_markdown(summary: dict) -> str:
     assigned = summary["assigned"]
     unassigned = summary["unassigned"]
@@ -329,6 +430,7 @@ def build_markdown(summary: dict) -> str:
     monthly = summary["monthly"]
     attendance = summary["attendance"]
     feedback = summary["feedback"]
+    current_run = summary["current_run"]
 
     lines = []
     lines.append("# Posting Operations Report v1")
@@ -360,6 +462,7 @@ def build_markdown(summary: dict) -> str:
         f"- `物件リスト` のうち `配布予定日` が埋まっているのは **{assigned['schedule_filled']:,}件 ({ratio(assigned['schedule_filled'], assigned['properties']) * 100:.1f}%)**、`開始日時` は **{assigned['started_filled']:,}件 ({ratio(assigned['started_filled'], assigned['properties']) * 100:.1f}%)**。"
     )
     lines.append("- `物件リスト` と `担当者不在` は別キューとして扱い、単純合算しています。")
+    lines.append("- メンバー別の実績は `262 稼働分` タブをベースにしているため、直近稼働分の把握に向いています。")
     lines.append("")
     lines.append("## Queue health")
     lines.append("")
@@ -421,6 +524,30 @@ def build_markdown(summary: dict) -> str:
     lines.append("| --- | ---: | ---: | ---: | ---: |")
     lines.extend(top_summary_pref_rows(summary["prefecture_summary"]))
     lines.append("")
+    lines.append("## Member performance (`262 稼働分` ベース)")
+    lines.append("")
+    lines.append("- public リポジトリ向けに、担当者識別子はマスクしています。")
+    lines.append("")
+    lines.append("| 担当者 | 物件数 | 総戸数 | 実配付枚数 | 実配付率 | 配布完了件数 | レビュー候補 |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    lines.extend(member_rows(current_run["members"]))
+    lines.append("")
+    lines.append("### Current run status")
+    lines.append("")
+    lines.append("| ステータス | 件数 |")
+    lines.append("| --- | ---: |")
+    lines.extend(simple_counter_rows(current_run["status"]))
+    lines.append("")
+    lines.append("### AI / OCR review signals")
+    lines.append("")
+    lines.append("| 項目 | 件数 |")
+    lines.append("| --- | ---: |")
+    lines.extend(simple_counter_rows(current_run["review"]))
+    lines.append("")
+    lines.append("| AI判定 | 件数 |")
+    lines.append("| --- | ---: |")
+    lines.extend(simple_counter_rows(current_run["ai"]))
+    lines.append("")
     lines.append("## Team signals")
     lines.append("")
     lines.append(f"- 有効メンバー: **{members['active']}名**")
@@ -470,6 +597,7 @@ def main() -> int:
     attendance_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "勤怠ログ")
     feedback_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "フィードバック")
     summary_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "データ集計")
+    current_run_rows = sheet_rows(zf, shared_strings, workbook, rel_map, "262 稼働分")
 
     summary_data = {
         "assigned": summarize_queue(records(assigned_rows)),
@@ -478,6 +606,7 @@ def main() -> int:
         "monthly": summarize_monthly(records(monthly_rows)),
         "attendance": summarize_attendance(records(attendance_rows)),
         "feedback": summarize_feedback(records(feedback_rows)),
+        "current_run": summarize_current_run(records(current_run_rows)),
     }
 
     aggregate = summarize_summary_sheet(records(summary_rows, header_index=1))
