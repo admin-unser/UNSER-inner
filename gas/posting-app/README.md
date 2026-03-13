@@ -27,7 +27,9 @@
 
 ### API キー（Gemini）
 
-**Script Properties で管理することを推奨**（リポジトリに commit しない）:
+**重要**: API キーをリポジトリに commit しないでください。漏洩した場合は再発行してください。
+
+**Script Properties で管理することを推奨**:
 
 1. Apps Script エディタ → **ファイル** → **プロジェクトのプロパティ** → **スクリプト プロパティ**
 2. `GEMINI_API_KEY` を追加し、API キーを設定
