@@ -52,7 +52,8 @@ chmod +x scripts/run_daily_posting_report.sh
 - **スケジュール**: 毎日 UTC 23:00（JST 翌朝 08:00）
 - **手動実行**: Actions タブから "Run workflow" で実行可能
 - **出力**: `reports/posting/YYYY-MM/daily/` に Markdown を commit
-- **注意**: 自動実行時は担当者名をマスク（public リポジトリ向け）。実名・リマインド JSON が必要な場合は手動で `--unmask` と `--reminders-json` 付きで実行し、`shared/` 等に保存（reminders JSON はメールアドレスを含むため public には commit しないこと）
+- **Google Chat**: `GOOGLE_CHAT_WEBHOOK_URL` を Secrets に設定すると、リマインドを自動送信。詳細: `docs/ops/google-chat-integration.md`
+- **注意**: 自動実行時は担当者名をマスク（public リポジトリ向け）
 
 従来の例（参考）:
 

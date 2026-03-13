@@ -11,7 +11,8 @@ Automation scripts live here.
 - `generate_posting_member_reports.py` … メンバー別月次レポート
 - `generate_posting_monthly_aggregate.py` … 月次集計（備考）
 - `export_unassigned_for_jimoty.py` … 担当者不在の都道府県別エクスポート（ジモティー求人用）
-- `run_daily_posting_report.sh` … 毎日レポート用シェル（cron 向け）
+- `run_daily_posting_report.sh` … 毎日レポート用シェル（cron 向け、GOOGLE_CHAT_WEBHOOK_URL で Chat 送信）
+- `send_to_google_chat.py` … リマインドを Google Chat に送信
 
 Examples:
 - sheet import scripts

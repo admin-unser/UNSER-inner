@@ -28,9 +28,22 @@ jobs:
           mkdir -p ../reports/posting/$MONTH/daily
           python3 generate_posting_daily_report_complete.py \
             --date $DATE \
-            --output ../reports/posting/$MONTH/daily/$DATE.md
+            --output ../reports/posting/$MONTH/daily/$DATE.md \
+            --reminders-json ../reports/posting/$MONTH/daily/${DATE}-reminders.json
         env:
           TZ: UTC
+
+      - name: Send to Google Chat
+        if: secrets.GOOGLE_CHAT_WEBHOOK_URL != ''
+        env:
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+        run: |
+          cd scripts
+          DATE=$(date -u +%Y-%m-%d)
+          MONTH=$(date -u +%Y-%m)
+          python3 send_to_google_chat.py \
+            --reminders-json ../reports/posting/$MONTH/daily/${DATE}-reminders.json
+        continue-on-error: true
 
       - name: Commit and push report
         run: |
