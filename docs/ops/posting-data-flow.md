@@ -42,3 +42,9 @@ https://docs.google.com/spreadsheets/d/1zUkpKOHO4ro35nvcCe-tfI-rNHWf3dJhPIVhPNuE
 
 - **実配付枚数がおかしい件**: 実配付 > 総戸数、実配付=0、実配付率が極端に低い などのレコードが存在する場合あり
 - レポートで「要確認」として検出・一覧化する
+- **実配付 > 総戸数** の修正: `scripts/fix_delivery_count.py` で自動修正可能。詳細: `docs/ops/fix-delivery-count.md`
+
+## 5. 実配付枚数と日付
+
+- 実配付枚数は **終了日時** に紐づく
+- 集計時は ID + 終了日時で重複を除外

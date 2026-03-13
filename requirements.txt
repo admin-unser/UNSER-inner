@@ -1,0 +1,3 @@
+# 実配付枚数修正スクリプト用（fix_delivery_count.py）
+gspread>=8.0.0
+google-auth>=2.0.0

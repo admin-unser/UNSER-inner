@@ -90,11 +90,27 @@ def row_date(item: dict[str, str]) -> dt.date | None:
     return None
 
 
+def _dedupe_by_id_date(recs: list[dict[str, str]]) -> list[dict[str, str]]:
+    """同一 ID + 終了日時の重複を除外（終了日時で実配付枚数が紐づくため）。"""
+    seen: set[tuple[str, str]] = set()
+    out = []
+    for r in recs:
+        rid = str(r.get("ID", "")).strip()
+        d = row_date(r)
+        key = (rid, d.isoformat() if d else "")
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
 def summarize_by_date(
     recs: list[dict[str, str]],
     target_date: dt.date | None,
 ) -> tuple[dt.date, dict]:
-    """指定日（または直近稼働日）のメンバー別集計。"""
+    """指定日（または直近稼働日）のメンバー別集計。終了日時で重複除外。"""
+    recs = _dedupe_by_id_date(recs)
     dates = sorted({row_date(r) for r in recs if row_date(r)})
     if not dates:
         raise RuntimeError("No dated rows in 配布完了 sheet.")
@@ -144,7 +160,8 @@ def summarize_month(
     year: int,
     month: int,
 ) -> dict:
-    """当月のメンバー別集計。"""
+    """当月のメンバー別集計。終了日時で重複除外。"""
+    recs = _dedupe_by_id_date(recs)
     month_start = dt.date(year, month, 1)
     month_end = dt.date(year, month + 1, 1) - dt.timedelta(days=1) if month < 12 else dt.date(year, 12, 31)
 

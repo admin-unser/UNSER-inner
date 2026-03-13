@@ -13,6 +13,7 @@ Automation scripts live here.
 - `export_unassigned_for_jimoty.py` … 担当者不在の都道府県別エクスポート（ジモティー求人用）
 - `run_daily_posting_report.sh` … 毎日レポート用シェル（cron 向け、GOOGLE_CHAT_WEBHOOK_URL で Chat 送信）
 - `send_to_google_chat.py` … リマインドを Google Chat に送信
+- `fix_delivery_count.py` … 実配付>総戸数のエラーを配布完了シートで修正
 
 Examples:
 - sheet import scripts
