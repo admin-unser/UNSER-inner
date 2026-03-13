@@ -337,6 +337,19 @@ def build_markdown(
             diff_str = f"{diff:+,}" if diff != 0 else "0"
             lines.append(f"| {row['display_name']} | {row['tehai']:,} | {row['delivered']:,} | {diff_str} |")
         lines.append("")
+        # 差分の内訳（メンバー別）
+        lines.append("### 差分の内訳（メンバー別）")
+        lines.append("")
+        lines.append("| 担当者 | 差分 | 内訳 |")
+        lines.append("| --- | ---: | ---: |")
+        for row in tehai_vs_delivered:
+            diff = row["tehai"] - row["delivered"]
+            if diff == 0:
+                continue
+            diff_str = f"{diff:+,}"
+            pct = (diff / diff_total * 100) if diff_total else 0
+            lines.append(f"| {row['display_name']} | {diff_str} | {pct:.1f}% |")
+        lines.append("")
 
     # 今月目標数 vs 実配付枚数
     if target_vs_actual:
