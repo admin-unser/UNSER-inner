@@ -111,8 +111,8 @@ def build_message_from_report_md(content: str) -> dict:
         out.extend(month)
         out.append("")
 
-    # 手配枚数 vs 配布枚数
-    tehai = collect_section("## 手配枚数 vs 配布枚数", ("## ",), 25)
+    # 今月目標数 vs 配布枚数
+    tehai = collect_section("## 今月目標数 vs 配布枚数", ("## ",), 25)
     if tehai:
         out.extend(tehai)
         out.append("")
