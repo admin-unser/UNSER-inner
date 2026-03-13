@@ -14,10 +14,10 @@
 ```
 gas/
 ├── README.md           … 本ファイル
-├── archive-transfer/   … 物件リストV2 → 配布完了アーカイブの移管
-│   ├── Code.gs
-│   └── README.md
-└── ...
+└── posting-app/       … ポスティングアプリ統合管理システム
+    ├── Code.gs        … OCR・アーカイブ・請求書・差し戻し連絡など
+    ├── README.md      … 機能一覧・セットアップ
+    └── TRIGGER.md     … トリガー設定の確認・記録用
 ```
 
 ## トリガーについて
