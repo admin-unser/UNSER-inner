@@ -111,6 +111,12 @@ def build_message_from_report_md(content: str) -> dict:
         out.extend(month)
         out.append("")
 
+    # 手配枚数 vs 配布枚数
+    tehai = collect_section("## 手配枚数 vs 配布枚数", ("## ",), 25)
+    if tehai:
+        out.extend(tehai)
+        out.append("")
+
     # 当日（直近稼働日）実績
     daily = collect_section("## 当日（直近稼働日）実績", ("## ",), 10)
     if daily:

@@ -29,8 +29,9 @@ https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6
 https://docs.google.com/spreadsheets/d/1zUkpKOHO4ro35nvcCe-tfI-rNHWf3dJhPIVhPNuEla4/edit?gid=438064429
 
 - `メンバーマスタ` タブ
+- **手配予定**: 3月の手配枚数（各メンバーに割り当てた枚数）
 - **H列「今月目標数」**: 各メンバーの今月の目標枚数
-- 配布完了の実配付枚数と比較して達成率を算出
+- 配布完了の実配付枚数と比較して、手配枚数 vs 配布枚数の差分・達成率を算出
 
 ## 3. データの対応関係
 

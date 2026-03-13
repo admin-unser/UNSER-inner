@@ -215,6 +215,21 @@ def load_monthly_targets(member_recs: list[dict[str, str]]) -> dict[str, int]:
     return targets
 
 
+def load_monthly_tehai(member_recs: list[dict[str, str]]) -> dict[str, int]:
+    """メンバーマスタから 手配予定（手配枚数）を取得。メールアドレス -> 手配枚数"""
+    tehai: dict[str, int] = {}
+    for r in member_recs:
+        mail = r.get("メールアドレス", "").strip()
+        val = r.get("手配予定", "").strip()
+        if not mail:
+            continue
+        try:
+            tehai[mail] = int(float(str(val).replace(",", ""))) if val and val != "-" else 0
+        except (ValueError, TypeError):
+            tehai[mail] = 0
+    return tehai
+
+
 def detect_delivery_anomalies(recs: list[dict[str, str]]) -> list[dict]:
     """実配付枚数がおかしいレコードを検出。重複はIDで除外。"""
     seen: set[tuple[str, str]] = set()
@@ -288,6 +303,7 @@ def build_markdown(
     name_map: dict[str, str] | None,
     unmask: bool,
     target_vs_actual: list[dict] | None = None,
+    tehai_vs_delivered: list[dict] | None = None,
     anomalies: list[dict] | None = None,
 ) -> str:
     def disp(key: str) -> str:
@@ -315,6 +331,27 @@ def build_markdown(
         mr = month_data["total_delivered"] / month_data["total_units"] * 100
         lines.append(f"- 実配付率: **{mr:.1f}%**")
     lines.append("")
+
+    # 手配枚数 vs 配布枚数（当月の照合）
+    if tehai_vs_delivered:
+        total_tehai = sum(r["tehai"] for r in tehai_vs_delivered)
+        total_delivered = sum(r["delivered"] for r in tehai_vs_delivered)
+        diff_total = total_tehai - total_delivered
+        lines.append("## 手配枚数 vs 配布枚数（当月照合）")
+        lines.append("")
+        lines.append(f"- **3月の手配枚数合計**: **{total_tehai:,}枚**（メンバーマスタ 手配予定）")
+        lines.append(f"- **現在の配布枚数**: **{total_delivered:,}枚**（配布完了確認シート 実配付）")
+        lines.append(f"- **差分**: **{diff_total:+,}枚**（正=残り、負=オーバー）")
+        lines.append("")
+        lines.append("### メンバー別 手配枚数 vs 配布枚数")
+        lines.append("")
+        lines.append("| 担当者 | 手配枚数 | 配布枚数 | 差分 |")
+        lines.append("| --- | ---: | ---: | ---: |")
+        for row in tehai_vs_delivered:
+            diff = row["tehai"] - row["delivered"]
+            diff_str = f"{diff:+,}" if diff != 0 else "0"
+            lines.append(f"| {row['display_name']} | {row['tehai']:,} | {row['delivered']:,} | {diff_str} |")
+        lines.append("")
 
     # 今月目標数 vs 実配付枚数
     if target_vs_actual:
@@ -452,6 +489,22 @@ def main() -> int:
         })
     target_vs_actual.sort(key=lambda x: -x["delivered"])
 
+    # 手配枚数 vs 配布枚数（メンバー別）
+    tehai_map = load_monthly_tehai(member_recs)
+    tehai_vs_delivered = []
+    all_members = set(tehai_map.keys()) | set(delivered_by_member.keys())
+    for member_key in all_members:
+        tehai = tehai_map.get(member_key, 0)
+        delivered = delivered_by_member.get(member_key, 0)
+        if tehai == 0 and delivered == 0:
+            continue
+        tehai_vs_delivered.append({
+            "display_name": (name_map or {}).get(member_key, member_key),
+            "tehai": tehai,
+            "delivered": delivered,
+        })
+    tehai_vs_delivered.sort(key=lambda x: (-x["delivered"], -x["tehai"]))
+
     # 実配付枚数 要確認
     anomalies = detect_delivery_anomalies(recs)
 
@@ -464,6 +517,7 @@ def main() -> int:
         name_map,
         args.unmask,
         target_vs_actual=target_vs_actual,
+        tehai_vs_delivered=tehai_vs_delivered,
         anomalies=anomalies,
     )
 
