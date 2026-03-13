@@ -18,6 +18,8 @@
 https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y/edit?gid=699000728
 
 - 配布が完了した物件がここにアーカイブされる
+- **移管**: 物件リストV2 でステータス「配布完了」になったレコードを、GAS でこのシートに移管
+- GAS コード: `gas/archive-transfer/`（トリガー設定は Apps Script の「トリガー」で確認）
 - `配布完了` タブに、ID・担当者・総戸数・実配付枚数・終了日時 などが記録される
 - 日次レポート・当月実績はこのシートを参照
 
