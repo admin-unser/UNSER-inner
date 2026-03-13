@@ -1,0 +1,46 @@
+name: Daily Posting Report
+
+# レポートを commit するために contents の write 権限が必要
+permissions:
+  contents: write
+
+on:
+  schedule:
+    # UTC 23:00 = JST 08:00 翌朝
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate daily posting report
+        run: |
+          cd scripts
+          DATE=$(date -u +%Y-%m-%d)
+          MONTH=$(date -u +%Y-%m)
+          mkdir -p ../reports/posting/$MONTH/daily
+          python3 generate_posting_daily_report_complete.py \
+            --date $DATE \
+            --output ../reports/posting/$MONTH/daily/$DATE.md
+        env:
+          TZ: UTC
+
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/posting/
+          git diff --staged --quiet || git commit -m "chore: daily posting report $(date -u +%Y-%m-%d)"
+          git push
+        env:
+          # リポジトリへの push が必要。PAT を secrets.GITHUB_TOKEN で利用可能な場合
+          # デフォルトでは workflow が変更したファイルを push できない場合あり
+          # 必要に応じて Personal Access Token を secrets に設定
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

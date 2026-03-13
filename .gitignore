@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# リマインド候補 JSON（メールアドレス等を含む。社内用）
+*-reminders.json
