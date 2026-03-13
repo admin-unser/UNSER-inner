@@ -183,6 +183,57 @@ def summarize_month(
     }
 
 
+def load_monthly_targets(member_recs: list[dict[str, str]]) -> dict[str, int]:
+    """メンバーマスタから 今月目標数（H列）を取得。メールアドレス -> 目標数"""
+    targets: dict[str, int] = {}
+    for r in member_recs:
+        mail = r.get("メールアドレス", "").strip()
+        val = r.get("今月目標数", "").strip()
+        if not mail:
+            continue
+        try:
+            targets[mail] = int(float(str(val).replace(",", ""))) if val and val != "-" else 0
+        except (ValueError, TypeError):
+            targets[mail] = 0
+    return targets
+
+
+def detect_delivery_anomalies(recs: list[dict[str, str]]) -> list[dict]:
+    """実配付枚数がおかしいレコードを検出。重複はIDで除外。"""
+    seen: set[tuple[str, str]] = set()
+    anomalies = []
+    for r in recs:
+        if not r.get("ID"):
+            continue
+        total = int(to_number(r.get("総戸数", "")))
+        delivered = int(to_number(r.get("実配付枚数", "")))
+        if total <= 0:
+            continue
+        rate = (delivered / total * 100) if total else 0
+        kind = None
+        if delivered > total:
+            kind = "実配付>総戸数"
+        elif delivered == 0 and total >= 5:
+            kind = "実配付=0"
+        elif rate < 5 and total >= 20:
+            kind = "実配付率<5%"
+        if kind:
+            key = (str(r.get("ID", "")), kind)
+            if key in seen:
+                continue
+            seen.add(key)
+            anomalies.append({
+                "kind": kind,
+                "id": r.get("ID", ""),
+                "total": total,
+                "delivered": delivered,
+                "rate": round(rate, 1),
+                "member": r.get("担当者", "").strip(),
+                "property_name": (r.get("物件名", "") or "")[:40],
+            })
+    return anomalies
+
+
 def reminder_candidates(
     members: list[tuple[str, dict]],
     threshold: float,
@@ -219,6 +270,8 @@ def build_markdown(
     threshold: float,
     name_map: dict[str, str] | None,
     unmask: bool,
+    target_vs_actual: list[dict] | None = None,
+    anomalies: list[dict] | None = None,
 ) -> str:
     def disp(key: str) -> str:
         return name_map.get(key, key) if unmask else key
@@ -245,6 +298,21 @@ def build_markdown(
         mr = month_data["total_delivered"] / month_data["total_units"] * 100
         lines.append(f"- 実配付率: **{mr:.1f}%**")
     lines.append("")
+
+    # 今月目標数 vs 実配付枚数
+    if target_vs_actual:
+        lines.append("## 今月目標数 vs 実配付枚数")
+        lines.append("")
+        lines.append("- メンバーマスタ H列「今月目標数」と配布完了の実配付枚数（当月）を比較")
+        lines.append("")
+        lines.append("| 担当者 | 今月目標数 | 実配付枚数 | 達成率 |")
+        lines.append("| --- | ---: | ---: | ---: |")
+        for row in target_vs_actual:
+            target = row["target"]
+            actual = row["delivered"]
+            rate = (actual / target * 100) if target else 0
+            lines.append(f"| {row['display_name']} | {target:,} | {actual:,} | {rate:.1f}% |")
+        lines.append("")
 
     # 当日サマリ
     lines.append("## 当日（直近稼働日）実績")
@@ -294,6 +362,33 @@ def build_markdown(
     else:
         lines.append("- リマインド候補はありません。")
     lines.append("")
+
+    # 実配付枚数 要確認
+    if anomalies:
+        lines.append("## 実配付枚数 要確認")
+        lines.append("")
+        lines.append("- 実配付 > 総戸数、実配付=0、実配付率<5% などのレコード")
+        lines.append("")
+        by_kind: dict[str, list] = {}
+        for a in anomalies:
+            by_kind.setdefault(a["kind"], []).append(a)
+        for kind in ("実配付>総戸数", "実配付=0", "実配付率<5%"):
+            if kind not in by_kind:
+                continue
+            items = by_kind[kind]
+            lines.append(f"### {kind} ({len(items)}件)")
+            lines.append("")
+            lines.append("| ID | 総戸数 | 実配付 | 率 | 担当者 | 物件名 |")
+            lines.append("| --- | ---: | ---: | ---: | --- | --- |")
+            for a in items[:20]:
+                lines.append(
+                    f"| {a['id']} | {a['total']:,} | {a['delivered']:,} | {a['rate']:.1f}% | "
+                    f"{disp(a['member']) if a['member'] else '-'} | {a['property_name'][:25]} |"
+                )
+            if len(items) > 20:
+                lines.append(f"| ... | 他 {len(items) - 20} 件 |")
+            lines.append("")
+
     lines.append("---")
     lines.append("")
     lines.append("*配布完了確認シートの `配布完了` タブを参照*")
@@ -325,6 +420,24 @@ def main() -> int:
         args.unmask,
     )
 
+    # 今月目標数 vs 実配付枚数
+    targets = load_monthly_targets(member_recs)
+    delivered_by_member = {k: m["delivered"] for k, m in month_data["members"]}
+    target_vs_actual = []
+    for member_key, target in targets.items():
+        if target <= 0:
+            continue
+        delivered = delivered_by_member.get(member_key, 0)
+        target_vs_actual.append({
+            "display_name": (name_map or {}).get(member_key, member_key),
+            "target": target,
+            "delivered": delivered,
+        })
+    target_vs_actual.sort(key=lambda x: -x["delivered"])
+
+    # 実配付枚数 要確認
+    anomalies = detect_delivery_anomalies(recs)
+
     md = build_markdown(
         report_date,
         month_data,
@@ -333,6 +446,8 @@ def main() -> int:
         args.reminder_threshold,
         name_map,
         args.unmask,
+        target_vs_actual=target_vs_actual,
+        anomalies=anomalies,
     )
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)

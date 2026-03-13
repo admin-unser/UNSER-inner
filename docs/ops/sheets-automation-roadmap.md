@@ -55,11 +55,17 @@ posting シートは、配布対象物件、担当者、勤怠、月次報告、
 2. 都道府県別・担当者別の進捗レポート
 3. 月次報告と勤怠ログの確認レポート
 
+### データの流れ
+
+- 配布完了 → [配布完了確認シート](https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y) にアーカイブ
+- 当日確認・今月目標数 → [posting メンバーマスタ](https://docs.google.com/spreadsheets/d/1zUkpKOHO4ro35nvcCe-tfI-rNHWf3dJhPIVhPNuEla4/edit?gid=438064429) H列
+- 詳細: `docs/ops/posting-data-flow.md`
+
 ### レポート運用（月次管理）
 
 - **月次・日次・メンバー別**: `scripts/run_posting_reports.py --month YYYY-MM`
 - 出力先: `reports/posting/YYYY-MM/`（monthly-summary, daily/, members/, monthly-aggregate）
-- **配布完了実績**: [配布完了確認シート](https://docs.google.com/spreadsheets/d/1wIE_FrIv4a7QoeMcKROAYesxbMIFmsHwAXFV6k-6h0Y) の `配布完了` タブを参照
+- **日次レポート**: 今月目標数 vs 実配付枚数、実配付枚数要確認の検出を含む
 - **担当者不在 × ジモティー**: `scripts/export_unassigned_for_jimoty.py` で都道府県別エクスポート
   - 詳細: `docs/ops/jimoty-unassigned-integration.md`
 
