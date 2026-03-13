@@ -474,30 +474,33 @@ def main() -> int:
         args.unmask,
     )
 
-    # 今月目標数 vs 実配付枚数
+    # メンバー全員（ポスリストV2 メンバーマスタをマスタとする）
+    all_member_keys = [
+        r.get("メールアドレス", "").strip()
+        for r in member_recs
+        if r.get("メールアドレス", "").strip()
+    ]
+
+    # 今月目標数 vs 実配付枚数（全員分）
     targets = load_monthly_targets(member_recs)
     delivered_by_member = {k: m["delivered"] for k, m in month_data["members"]}
     target_vs_actual = []
-    for member_key, target in targets.items():
-        if target <= 0:
-            continue
+    for member_key in all_member_keys:
+        target = targets.get(member_key, 0)
         delivered = delivered_by_member.get(member_key, 0)
         target_vs_actual.append({
             "display_name": (name_map or {}).get(member_key, member_key),
             "target": target,
             "delivered": delivered,
         })
-    target_vs_actual.sort(key=lambda x: -x["delivered"])
+    target_vs_actual.sort(key=lambda x: (-x["delivered"], -x["target"]))
 
-    # 手配枚数 vs 配布枚数（メンバー別）
+    # 手配枚数 vs 配布枚数（メンバー別・全員分）
     tehai_map = load_monthly_tehai(member_recs)
     tehai_vs_delivered = []
-    all_members = set(tehai_map.keys()) | set(delivered_by_member.keys())
-    for member_key in all_members:
+    for member_key in all_member_keys:
         tehai = tehai_map.get(member_key, 0)
         delivered = delivered_by_member.get(member_key, 0)
-        if tehai == 0 and delivered == 0:
-            continue
         tehai_vs_delivered.append({
             "display_name": (name_map or {}).get(member_key, member_key),
             "tehai": tehai,
