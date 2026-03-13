@@ -41,8 +41,7 @@ jobs:
           cd scripts
           DATE=$(date -u +%Y-%m-%d)
           MONTH=$(date -u +%Y-%m)
-          python3 send_to_google_chat.py \
-            --reminders-json ../reports/posting/$MONTH/daily/${DATE}-reminders.json
+          python3 send_to_google_chat.py --report-md ../reports/posting/$MONTH/daily/${DATE}.md
         continue-on-error: true
 
       - name: Commit and push report

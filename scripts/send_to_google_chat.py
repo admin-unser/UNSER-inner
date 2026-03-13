@@ -85,24 +85,51 @@ def build_message_from_reminders(reminders: dict) -> dict:
 
 
 def build_message_from_report_md(content: str) -> dict:
-    """レポート Markdown から要約を抽出してメッセージを構築。"""
+    """レポート Markdown から配布レポート要約を抽出してメッセージを構築。"""
     lines = content.strip().split("\n")
-    summary = []
-    in_section = False
-    for line in lines:
-        if line.startswith("## 当月実績サマリ"):
-            in_section = True
-            continue
-        if in_section and line.startswith("## "):
-            break
-        if in_section and line.strip():
-            summary.append(line)
-        if in_section and line.startswith("- 実配付率:"):
-            break
-    header = "📋 ポスティング日次レポート"
-    if summary:
-        return {"text": header + "\n\n" + "\n".join(summary[:8])}
-    return {"text": header + "\n\n" + content[:2000]}
+    out = ["📋 ポスティング日次レポート（配布レポート）", ""]
+
+    def collect_section(start_marker: str, end_markers: tuple[str, ...], max_lines: int = 15) -> list[str]:
+        section = []
+        in_section = False
+        for line in lines:
+            if line.strip().startswith(start_marker):
+                in_section = True
+                continue
+            if in_section:
+                if any(line.strip().startswith(m) for m in end_markers):
+                    break
+                if line.strip():
+                    section.append(line)
+                    if len(section) >= max_lines:
+                        break
+        return section
+
+    # 当月実績サマリ
+    month = collect_section("## 当月実績サマリ", ("## ",), 10)
+    if month:
+        out.extend(month)
+        out.append("")
+
+    # 当日（直近稼働日）実績
+    daily = collect_section("## 当日（直近稼働日）実績", ("## ",), 10)
+    if daily:
+        out.extend(daily)
+        out.append("")
+
+    # リマインド候補
+    if "## リマインド候補" in content:
+        idx = content.find("## リマインド候補")
+        block = content[idx:idx + 800].split("\n")
+        for line in block[:12]:
+            if line.strip() and not line.strip().startswith("## "):
+                out.append(line)
+        out.append("")
+
+    text = "\n".join(out).strip()
+    if len(text) > 28000:
+        text = text[:28000] + "\n\n...(省略)"
+    return {"text": text}
 
 
 def main() -> int:
